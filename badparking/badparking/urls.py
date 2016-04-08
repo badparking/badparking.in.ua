@@ -13,4 +13,5 @@ router.register(r'types', CrimeTypeViewSet)
 urlpatterns = [
     url(r'^api/', include(router.urls)),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^docs/', include('rest_framework_swagger.urls')),
 ]
