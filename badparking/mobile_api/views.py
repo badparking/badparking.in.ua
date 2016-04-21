@@ -1,30 +1,27 @@
 from django.http import Http404
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from core.models import Claim, CrimeType
+from core.models import CrimeType
 from media.models import MediaFileModel
 from .serializers import ClaimSerializer
 
 
 class ClaimList(APIView):
-    def get(self, request, format=None):
-        claims = Claim.objects.all()
-        serializer = ClaimSerializer(claims, many=True)
-        return Response(serializer.data)
-
     def post(self, request, format=None):
         serializer = ClaimSerializer(data=request.data)
 
         if serializer.is_valid():
-            claim = Claim(**serializer.data)
+            claim = serializer.save()
             # temporary solution until we'll have auth
-            claim.user = request.user if request.user.id else User.objects.all()[0]
+            claim.user = request.user \
+                            if request.user.id \
+                            else get_user_model().objects.all()[0]
             claim.save()
 
-            if (request.FILES):
+            if request.FILES:
                 for img in request.FILES.getlist('images'):
                     image = MediaFileModel()
                     image.file.save(img.name, img)
@@ -32,8 +29,8 @@ class ClaimList(APIView):
                     claim.images.add(image)
 
             types = request.data.getlist('types')
-            if (types):
-                ct = CrimeType.objects.filter(name__in = types)
+            if types:
+                ct = CrimeType.objects.filter(id__in=types)
                 claim.crimetypes.add(*ct)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)

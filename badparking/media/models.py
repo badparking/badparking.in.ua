@@ -14,9 +14,6 @@ class MediaFileModel(models.Model):
     def url(self):
         return self.file.url
 
-    def __unicode__(self):
-        return self.pk
-
     class Meta:
         verbose_name = "Зображення"
         verbose_name_plural = "Зображення"

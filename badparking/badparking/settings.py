@@ -129,6 +129,7 @@ SWAGGER_SETTINGS = {
     'doc_expansion': 'none',
 }
 
+AUTH_USER_MODEL = 'auth.User'
 
 try:
     from .local_settings import *
