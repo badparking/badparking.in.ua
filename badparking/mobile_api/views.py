@@ -1,7 +1,5 @@
 from django.http import Http404
 from rest_framework import viewsets, permissions, views, response, status
-from django.contrib.auth import get_user_model
-
 from core.models import CrimeType
 from media.models import MediaFileModel
 from .serializers import ClaimSerializer, CrimeTypeSerializer
@@ -31,15 +29,10 @@ class CurrentUserView(views.APIView):
 
 class ClaimList(views.APIView):
     def post(self, request, format=None):
-        serializer = ClaimSerializer(data=request.data)
+        serializer = ClaimSerializer(data=request.data, request=request)
 
         if serializer.is_valid():
             claim = serializer.save()
-            # temporary solution until we'll have auth
-            claim.user = request.user \
-                            if request.user.id \
-                            else get_user_model().objects.all()[0]
-            claim.save()
 
             if request.FILES:
                 for img in request.FILES.getlist('images'):
