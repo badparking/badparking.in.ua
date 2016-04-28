@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 from os.path import dirname, abspath, normpath, join
+import datetime
 
 BASE_DIR = dirname(dirname(abspath(__file__)))
 
@@ -43,6 +44,7 @@ INSTALLED_APPS = (
     'front',
     'mobile_api',
     'media',
+    'profiles',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -98,6 +100,8 @@ USE_L10N = False
 
 USE_TZ = True
 
+AUTH_USER_MODEL = 'profiles.User'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
@@ -109,7 +113,7 @@ MEDIA_URL = '/media/'
 
 SWAGGER_SETTINGS = {
     'exclude_namespaces': [],
-    'api_version': '0.1',
+    'api_version': 'v1',
     'api_path': '/',
     'enabled_methods': [
         'get',
@@ -127,9 +131,43 @@ SWAGGER_SETTINGS = {
         'title': 'Badparking API documentation',
     },
     'doc_expansion': 'none',
+    'token_type': 'JWT'
 }
 
-AUTH_USER_MODEL = 'auth.User'
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+    ),
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning',
+    'DEFAULT_VERSION': 1,
+}
+
+JWT_AUTH = {
+    'JWT_ALGORITHM': 'HS256',
+    'JWT_VERIFY': True,
+    'JWT_VERIFY_EXPIRATION': True,
+    'JWT_LEEWAY': 0,
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(minutes=30),
+    'JWT_AUDIENCE': None,
+    'JWT_ISSUER': None,
+
+    'JWT_ALLOW_REFRESH': True,
+    'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=14),
+
+    'JWT_AUTH_HEADER_PREFIX': 'JWT',
+}
+
+
+BANKID_OSCHADBANK = {
+    'client_id': None
+}
+
+BANKID_PRIVATBANK = {
+    'client_id': None
+}
 
 try:
     from .local_settings import *

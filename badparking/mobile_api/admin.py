@@ -1,3 +1,9 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Client
+
+
+class ClientAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'name', 'is_active')
+
+admin.site.register(Client, ClientAdmin)

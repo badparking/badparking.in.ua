@@ -1,16 +1,11 @@
-from rest_framework import serializers, viewsets
+from rest_framework import serializers
 from core.models import CrimeType, Claim
 
 
 class CrimeTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = CrimeType
-        fields = ('name',)
-
-
-class CrimeTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = CrimeType.objects.filter(enabled=True)
-    serializer_class = CrimeTypeSerializer
+        fields = ('id', 'name',)
 
 
 class ClaimSerializer(serializers.ModelSerializer):
