@@ -1,4 +1,6 @@
 from django.db import models
+from django.conf import settings
+from media.models import MediaFileModel
 
 
 class CrimeType(models.Model):
@@ -11,3 +13,23 @@ class CrimeType(models.Model):
     class Meta:
         verbose_name = "Тип порушення"
         verbose_name_plural = "Типи порушень"
+
+
+class Claim(models.Model):
+    license_plates = models.CharField("Номери автомобілів", max_length=50, blank=True)
+    longitude = models.DecimalField("Довгота", max_digits=9, decimal_places=6)
+    latitude = models.DecimalField("Широта", max_digits=9, decimal_places=6)
+    city = models.CharField("Місто", max_length=255, blank=True)
+    address = models.CharField("Адреса", max_length=255, blank=True)
+    created_at = models.DateTimeField(editable=False, auto_now_add=True)
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE,
+                             verbose_name="Користувач")
+
+    crimetypes = models.ManyToManyField(CrimeType, verbose_name="Порушення")
+    images = models.ManyToManyField(MediaFileModel, blank=True, verbose_name="Зображення")
+
+    class Meta:
+        verbose_name = "Скарга"
+        verbose_name_plural = "Скарги"

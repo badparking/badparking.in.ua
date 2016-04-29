@@ -62,4 +62,6 @@ target/
 .ipynb_checkpoints
 .DS_Store
 
+badparking/badparking/local_settings.py
+image_storage/
 .vagrant

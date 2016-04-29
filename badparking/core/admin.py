@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CrimeType
+from .models import CrimeType, Claim
 
 
 class CrimeTypeAdmin(admin.ModelAdmin):
@@ -10,4 +10,9 @@ class CrimeTypeAdmin(admin.ModelAdmin):
         return False
 
 
+class ClaimAdmin(admin.ModelAdmin):
+    list_display = ("pk", "created_at")
+
+
 admin.site.register(CrimeType, CrimeTypeAdmin)
+admin.site.register(Claim, ClaimAdmin)
