@@ -1,0 +1,60 @@
+- model: profiles.user
+  pk: 1
+  fields:
+    password: testpassword
+    last_login: 2016-04-30 19:49:35.630451+00:00
+    is_superuser: true
+    username: superuser
+    first_name: ''
+    last_name: ''
+    email: superuser@email.com
+    is_staff: true
+    is_active: true
+    date_joined: 2016-04-21 22:00:55.700333+00:00
+    middle_name: ''
+    dob: 2016-04-22
+    inn: ''
+    passport: ''
+    provider_type: ''
+    groups: []
+    user_permissions: []
+- model: profiles.user
+  pk: 2
+  fields:
+    password: testpassword
+    last_login: null
+    is_superuser: false
+    username: '1112618222'
+    first_name: Aivaras
+    last_name: "Abromavi\u010Dius"
+    email: aivaras@abromavichius.com
+    is_staff: false
+    is_active: true
+    date_joined: 2016-04-21 23:12:24.821077+00:00
+    middle_name: ''
+    dob: 1976-01-21
+    inn: '1112618222'
+    passport: AA 123456
+    provider_type: 'privat_bankid'
+    groups: []
+    user_permissions: []
+- model: profiles.user
+  pk: 3
+  fields:
+    password: testpassword
+    last_login: null
+    is_superuser: false
+    username: '1112618223'
+    first_name: Inactive
+    last_name: User
+    email: inactive@user.com
+    is_staff: false
+    is_active: false
+    date_joined: 2016-04-21 23:12:24.821077+00:00
+    middle_name: ''
+    dob: 1999-01-21
+    inn: '1112618223'
+    passport: AA 123457
+    provider_type: 'privat_bankid'
+    groups: []
+    user_permissions: []

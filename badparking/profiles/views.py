@@ -29,17 +29,16 @@ class OAuthLoginView(View):
         client_id = request.GET.get('client_id')
         client_secret = request.GET.get('client_secret')
         if not client_id or not client_secret:
-            return HttpResponseForbidden()
+            return HttpResponseBadRequest()
 
         try:
             Client.objects.get(id=client_id, secret=client_secret, is_active=True)
-        except Client.DoesNotExist:
+        except (Client.DoesNotExist, ValueError):
             return HttpResponseForbidden()
 
-        return HttpResponseRedirect(self._authorization_url)
+        return HttpResponseRedirect(self._authorization_url(request))
 
-    @property
-    def _authorization_url(self):
+    def _authorization_url(self, request):
         """
         Fully formed OAuth2 authorization flow URL, which will be used to redirect the user and then back again.
         """
@@ -69,8 +68,8 @@ class OAuthCompleteLoginView(View):
             serializer = UserSerializer(user, data=user_info)
         else:
             serializer = UserSerializer(data=user_info)
-        # TODO: show some useful error message instead of exception throwing
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return HttpResponseBadRequest('Invalid user data', content_type='text/plain')
         user = serializer.save()
 
         payload = jwt_payload_handler(user)
@@ -110,7 +109,7 @@ class BankIDUserInfoMixin(object):
             'first_name': customer['firstName'],
             'middle_name': customer.get('middleName', ''),
             'last_name': customer['lastName'],
-            'email': customer['email'],
+            'email': customer.get('email', ''),
             'inn': customer.get('inn', ''),
             'dob': datetime.strptime(customer['birthDay'], '%d.%m.%Y').date(),
             'passport': '{} {}'.format(passport['series'], passport['number']) if passport else ''
@@ -125,30 +124,27 @@ class BankIDUserInfoMixin(object):
 
 
 class OschadBankOAuthLoginView(OAuthLoginView):
-    @property
-    def _authorization_url(self):
-        args = {
-            'client_id': settings.BANKID_OSCHADBANK['client_id'],
-            'redirect_uri': reverse('profiles>complete_login>oschadbank')
-        }
+    def _authorization_url(self, request):
+        args = (
+            ('client_id', settings.BANKID_OSCHADBANK['client_id']),
+            ('redirect_uri', request.build_absolute_uri(reverse('profiles>complete_login>oschadbank')))
+        )
         return 'https://bankid.oschadbank.ua/v1/bank/oauth2/authorize?{}'.format(urlencode(args))
 
 
 class PrivatBankOAuthLoginView(OAuthLoginView):
-    @property
-    def _authorization_url(self):
-        args = {
-            'client_id': settings.BANKID_PRIVATBANK['client_id'],
-            'redirect_uri': reverse('profiles>complete_login>privatbank')
-        }
+    def _authorization_url(self, request):
+        args = (
+            ('client_id', settings.BANKID_PRIVATBANK['client_id']),
+            ('redirect_uri', request.build_absolute_uri(reverse('profiles>complete_login>privatbank')))
+        )
         return 'https://bankid.privatbank.ua/DataAccessService/das/authorize?{}'.format(urlencode(args))
 
 
 class DummyOAuthLoginView(OAuthLoginView):
     """Temporary view for testing purposes only (should be replaced with proper unit tests later on)"""
-    @property
-    def _authorization_url(self):
-        return '{}?code=dummy'.format(reverse('profiles>complete_login>dummy'))
+    def _authorization_url(self, request):
+        return '{}?code=dummy'.format(request.build_absolute_uri(reverse('profiles>complete_login>dummy')))
 
 
 class OschadBankOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
@@ -175,5 +171,5 @@ class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
             'inn': '1112618222',
             'dob': datetime.strptime('21.01.1976', '%d.%m.%Y').date(),
             'passport': 'AA 123456',
-            'provider': ''
+            'provider_type': ''
         }

@@ -65,3 +65,4 @@ target/
 badparking/badparking/local_settings.py
 image_storage/
 .vagrant
+*.sublime-*
