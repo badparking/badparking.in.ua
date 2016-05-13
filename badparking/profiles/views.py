@@ -132,7 +132,8 @@ class BankIDUserInfoMixin(object):
             'inn': customer.get('inn', ''),
             # Birthday is required but due to some glitches with BankID atm this is temporarily worked around
             'dob': datetime.strptime(customer['birthDay'], '%d.%m.%Y').date() if 'birthDay' in customer else datetime.today().date(),
-            'passport': '{} {}'.format(passport['series'], passport['number']) if passport else ''
+            'passport': '{} {}'.format(passport['series'], passport['number']) if passport else '',
+            'phone': customer.get('phone', '')
         }
 
     def _get_user(self, user_info):
@@ -199,5 +200,6 @@ class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
             'inn': '1112618222',
             'dob': datetime.strptime('21.01.1976', '%d.%m.%Y').date(),
             'passport': 'AA 123456',
+            'phone': '+380961234511',
             'provider_type': ''
         }

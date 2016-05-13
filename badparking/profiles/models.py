@@ -12,6 +12,7 @@ class User(AbstractUser):
     # This might be empty, in such case passport should be used, `User.identity` property addresses this
     inn = models.CharField(max_length=255, blank=True, db_index=True)
     passport = models.CharField(max_length=255, blank=True, db_index=True)  # <series number> format
+    phone = models.CharField(max_length=255, blank=True)
     provider_type = models.CharField(max_length=255, choices=PROFILE_PROVIDERS, blank=True)
 
     @property

@@ -33,6 +33,7 @@ class UserSerializerTests(TestCase):
             'inn': '1112618111',
             'dob': date(1973, 1, 20),
             'passport': 'ШО 123456',
+            'phone': '+380961234511',
             'provider_type': OSCHAD_BANKID
         }
 
@@ -48,6 +49,7 @@ class UserSerializerTests(TestCase):
             'inn': '1112618222',
             'dob': '1976-01-21',
             'passport': 'AA 123456',
+            'phone': '+380961234511',
             'provider_type': PRIVAT_BANKID
         })
 
@@ -67,6 +69,7 @@ class UserSerializerTests(TestCase):
             'inn': '1111111111',
             'dob': date(1965, 9, 26),
             'passport': '',
+            'phone': '',
             'provider_type': OSCHAD_BANKID
         }
         serializer = UserSerializer(data=data)
@@ -99,6 +102,7 @@ class OAuthViewsTests(TestCase):
             'inn': '1112618111',
             'dob': date(1973, 1, 20),
             'passport': 'ШО 123456',
+            'phone': '+380961234511'
         }
         if extra_user_info:
             user_info.update(extra_user_info)
@@ -179,6 +183,7 @@ class OAuthViewsTests(TestCase):
             'inn': '1112618222',
             'dob': '1976-01-21',
             'passport': 'AA 123456',
+            'phone': '+380961234512',
             'provider_type': OSCHAD_BANKID
         }
         user = User.objects.get(passport=extra_user_info['passport'])
@@ -199,6 +204,7 @@ class OAuthViewsTests(TestCase):
             'inn': '1112618223',
             'dob': '1999-01-21',
             'passport': 'AA 123457',
+            'phone': '',
             'provider_type': OSCHAD_BANKID
         }
         user = User.objects.get(passport=extra_user_info['passport'])
@@ -217,6 +223,7 @@ class OAuthViewsTests(TestCase):
             'inn': '',
             'dob': '1999-401-21',
             'passport': 'dfgk gdfk445',
+            'phone': '',
             'provider_type': OSCHAD_BANKID
         }
         response = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
@@ -259,6 +266,7 @@ class OAuthViewsTests(TestCase):
             'inn': '1112618222',
             'dob': date(1973, 1, 20),
             'passport': 'ШО 123456',
+            'phone': '+380681231212'
         }
         obj = BankIDUserInfoMixin()
         self.assertEqual(obj._map_user_info(bankid_data), expected_data)
