@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from rest_framework_jwt.settings import api_settings
 
@@ -29,7 +30,7 @@ class UserSerializerTests(TestCase):
             'middle_name': 'МИКОЛАЙОВИЧ',
             'last_name': 'САЛО',
             'email': 'eugene.salo@email.com',
-            'inn': '1112618222',
+            'inn': '1112618111',
             'dob': date(1973, 1, 20),
             'passport': 'ШО 123456',
             'provider_type': OSCHAD_BANKID
@@ -55,7 +56,7 @@ class UserSerializerTests(TestCase):
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
         self.assertIsInstance(user, User)
-        self.assertEqual(user.identity, '1112618222')
+        self.assertEqual(user.identity, '1112618111')
 
     def test_deserialization_validation_failure(self):
         data = {
@@ -95,7 +96,7 @@ class OAuthViewsTests(TestCase):
             'middle_name': 'МИКОЛАЙОВИЧ',
             'last_name': 'САЛО',
             'email': 'eugene.salo@email.com',
-            'inn': '1112618222',
+            'inn': '1112618111',
             'dob': date(1973, 1, 20),
             'passport': 'ШО 123456',
         }
@@ -104,7 +105,7 @@ class OAuthViewsTests(TestCase):
 
         with patch.object(view, '_retrieve_user_info', return_value=user_info) as mock_method:
             response = self.client.get(complete_url, {'code': 'testcode'})
-            mock_method.assert_called_once_with('testcode')
+            mock_method.assert_called_once_with(response.wsgi_request, 'testcode')
             if test_failure:
                 return response
 
@@ -124,12 +125,12 @@ class OAuthViewsTests(TestCase):
         return user
 
     def test_oschadbank_full_flow(self):
-        with self.settings(BANKID_OSCHADBANK={'client_id': 'testid'}):
-            response = self.client.get(reverse('profiles>login>oschadbank'), self.client_creds)
+        response = self.client.get(reverse('profiles>login>oschadbank'), self.client_creds)
 
         complete_url = reverse('profiles>complete_login>oschadbank')
         redirect_uri = urlencode({'redirect_uri': 'http://testserver{}'.format(complete_url)})
-        expected_url = 'https://bankid.oschadbank.ua/v1/bank/oauth2/authorize?client_id=testid&{}'.format(redirect_uri)
+        expected_url = 'https://bankid.oschadbank.ua/v1/bank/oauth2/authorize?client_id={}&{}&response_type=code'\
+            .format(settings.BANKID_OSCHADBANK['client_id'], redirect_uri)
         self.assertRedirects(response, expected_url, fetch_redirect_response=False)
 
         user = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
@@ -137,13 +138,12 @@ class OAuthViewsTests(TestCase):
         self.assertEqual(user.provider_type, OSCHAD_BANKID)
 
     def test_privatbank_full_flow(self):
-        with self.settings(BANKID_PRIVATBANK={'client_id': 'testid'}):
-            response = self.client.get(reverse('profiles>login>privatbank'), self.client_creds)
+        response = self.client.get(reverse('profiles>login>privatbank'), self.client_creds)
 
         complete_url = reverse('profiles>complete_login>privatbank')
         redirect_uri = urlencode({'redirect_uri': 'http://testserver{}'.format(complete_url)})
-        expected_url = 'https://bankid.privatbank.ua/DataAccessService/das/authorize?client_id=testid&{}'\
-            .format(redirect_uri)
+        expected_url = 'https://bankid.privatbank.ua/DataAccessService/das/authorize?client_id={}&{}&response_type=code'\
+            .format(settings.BANKID_PRIVATBANK['client_id'], redirect_uri)
         self.assertRedirects(response, expected_url, fetch_redirect_response=False)
 
         user = self._complete_bankid_flow(PrivatBankOAuthCompleteLoginView, complete_url,
