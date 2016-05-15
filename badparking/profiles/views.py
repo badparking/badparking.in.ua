@@ -1,19 +1,25 @@
-from urllib.parse import urlencode
+import logging
+
 from datetime import datetime
 
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
-from django.conf import settings
 from django.views.generic import View
 from django.core.urlresolvers import reverse
 from django.contrib.auth import get_user_model
+from django.apps import apps
 
 from rest_framework_jwt.settings import api_settings
 
 from mobile_api.models import Client
 from .serializers import UserSerializer
+from .constants import OSCHAD_BANKID, PRIVAT_BANKID
+from .bankid import BankIdError
 
+logger = logging.getLogger(__name__)
 jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
 jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
+oschad_bankid = apps.get_app_config('profiles').oschad_bankid
+privat_bankid = apps.get_app_config('profiles').privat_bankid
 User = get_user_model()
 
 
@@ -42,7 +48,7 @@ class OAuthLoginView(View):
         """
         Fully formed OAuth2 authorization flow URL, which will be used to redirect the user and then back again.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class OAuthCompleteLoginView(View):
@@ -60,7 +66,9 @@ class OAuthCompleteLoginView(View):
         if not code:
             return HttpResponseBadRequest()
 
-        user_info = self._retrieve_user_info(code)
+        user_info = self._retrieve_user_info(request, code)
+        if not user_info:
+            return HttpResponseBadRequest()
         user = self._get_user(user_info)
         if user:
             if not user.is_active:
@@ -77,23 +85,34 @@ class OAuthCompleteLoginView(View):
 
         return HttpResponse(token, content_type='text/plain')
 
-    def _retrieve_user_info(self, code):
+    def _retrieve_user_info(self, request, code):
         """
         Returns a dict of fields required by the User model.
 
         The implementation retrieves an OAuth2 token using the given `code` and, which is used in order to obtain
         the user information from the provider-specific API.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def _get_user(self, user_info):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class BankIDUserInfoMixin(object):
     """
     Provides routines common to different BankID providers.
     """
+    user_info_declaration = {
+        'type': 'physical',
+        'fields': ['firstName', 'middleName', 'lastName', 'phone', 'inn', 'birthDay', 'email'],
+        'documents': [
+            {
+                'type': 'passport',
+                'fields': ['series', 'number']
+            }
+        ]
+    }
+
     def _map_user_info(self, user_info):
         """
         Maps BankID user info to internally digestible format. To be used with `_retrieve_user_info` method.
@@ -111,8 +130,10 @@ class BankIDUserInfoMixin(object):
             'last_name': customer['lastName'],
             'email': customer.get('email', ''),
             'inn': customer.get('inn', ''),
-            'dob': datetime.strptime(customer['birthDay'], '%d.%m.%Y').date(),
-            'passport': '{} {}'.format(passport['series'], passport['number']) if passport else ''
+            # Birthday is required but due to some glitches with BankID atm this is temporarily worked around
+            'dob': datetime.strptime(customer['birthDay'], '%d.%m.%Y').date() if 'birthDay' in customer else datetime.today().date(),
+            'passport': '{} {}'.format(passport['series'], passport['number']) if passport else '',
+            'phone': customer.get('phone', '')
         }
 
     def _get_user(self, user_info):
@@ -122,23 +143,25 @@ class BankIDUserInfoMixin(object):
             user = None
         return user
 
+    def _retrieve_user_info(self, request, code):
+        try:
+            user_info = self._bankid_user_info(request, code)
+        except BankIdError:
+            logger.exception('Retrieving BankID info for code "%s" failed', code)
+            return None
+        return self._map_user_info(user_info)
+
 
 class OschadBankOAuthLoginView(OAuthLoginView):
     def _authorization_url(self, request):
-        args = (
-            ('client_id', settings.BANKID_OSCHADBANK['client_id']),
-            ('redirect_uri', request.build_absolute_uri(reverse('profiles>complete_login>oschadbank')))
-        )
-        return 'https://bankid.oschadbank.ua/v1/bank/oauth2/authorize?{}'.format(urlencode(args))
+        redirect_url = request.build_absolute_uri(reverse('profiles>complete_login>oschadbank'))
+        return oschad_bankid.authorization_url(redirect_url)
 
 
 class PrivatBankOAuthLoginView(OAuthLoginView):
     def _authorization_url(self, request):
-        args = (
-            ('client_id', settings.BANKID_PRIVATBANK['client_id']),
-            ('redirect_uri', request.build_absolute_uri(reverse('profiles>complete_login>privatbank')))
-        )
-        return 'https://bankid.privatbank.ua/DataAccessService/das/authorize?{}'.format(urlencode(args))
+        redirect_url = request.build_absolute_uri(reverse('profiles>complete_login>privatbank'))
+        return privat_bankid.authorization_url(redirect_url)
 
 
 class DummyOAuthLoginView(OAuthLoginView):
@@ -148,15 +171,21 @@ class DummyOAuthLoginView(OAuthLoginView):
 
 
 class OschadBankOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
-    def _retrieve_user_info(self, code):
-        # TODO: integration point with Oschad BankID user info API
-        raise NotImplemented
+    def _bankid_user_info(self, request, code):
+        redirect_url = request.build_absolute_uri(reverse('profiles>complete_login>oschadbank'))
+        token = oschad_bankid.retrieve_access_token(code, redirect_url)
+        user_info = oschad_bankid.user_info(token, self.user_info_declaration)
+        user_info['provider_type'] = OSCHAD_BANKID
+        return user_info
 
 
 class PrivatBankOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
-    def _retrieve_user_info(self, code):
-        # TODO: integration point with Privat BankID user info API
-        raise NotImplemented
+    def _bankid_user_info(self, request, code):
+        redirect_url = request.build_absolute_uri(reverse('profiles>complete_login>privatbank'))
+        token = privat_bankid.retrieve_access_token(code, redirect_url)
+        user_info = privat_bankid.user_info(token, self.user_info_declaration)
+        user_info['provider_type'] = PRIVAT_BANKID
+        return user_info
 
 
 class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
@@ -171,5 +200,6 @@ class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
             'inn': '1112618222',
             'dob': datetime.strptime('21.01.1976', '%d.%m.%Y').date(),
             'passport': 'AA 123456',
+            'phone': '+380961234511',
             'provider_type': ''
         }

@@ -15,6 +15,7 @@
     dob: 2016-04-22
     inn: ''
     passport: ''
+    phone: ''
     provider_type: ''
     groups: []
     user_permissions: []
@@ -35,6 +36,7 @@
     dob: 1976-01-21
     inn: '1112618222'
     passport: AA 123456
+    phone: '+380961234511'
     provider_type: 'privat_bankid'
     groups: []
     user_permissions: []
@@ -55,6 +57,7 @@
     dob: 1999-01-21
     inn: '1112618223'
     passport: AA 123457
+    phone: ''
     provider_type: 'privat_bankid'
     groups: []
     user_permissions: []
