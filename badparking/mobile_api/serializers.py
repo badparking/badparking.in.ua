@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from core.models import CrimeType, Claim
-from django.contrib.auth import get_user_model
+from media.models import MediaFileModel
+from profiles.serializers import UserSerializer
+
 
 class CrimeTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,20 +10,27 @@ class CrimeTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name',)
 
 
-class ClaimSerializer(serializers.ModelSerializer):
-    def __init__(self, *args, **kwargs):
-        # Don't pass the 'request' arg up to the superclass
-        request = kwargs.pop('request', None)
-        # Instatiate the superclass normally
-        super(serializers.ModelSerializer, self).__init__(*args, **kwargs)
-        self.request = request
+class MediaFileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MediaFileModel
+        fields = ('file',)
 
-    def create(self, validated_data):
-        claim = Claim(**validated_data)
-        claim.user = self.request.user
-        claim.save()
-        return claim
+
+class ClaimSerializer(serializers.ModelSerializer):
+    images = MediaFileSerializer(many=True, read_only=True)
+    user = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
 
     class Meta:
         model = Claim
-        fields = ('license_plates', 'longitude', 'latitude', 'city', 'address')
+        fields = ('pk', 'license_plates', 'longitude', 'latitude', 'city', 'address', 'user', 'crimetypes', 'images',
+                  'status', 'images')
+        read_only_fields = ('status',)
+
+    def create(self, validated_data):
+        image_files = validated_data.pop('image_files', [])
+        claim = super(ClaimSerializer, self).create(validated_data)
+        for image_file in image_files:
+            # TODO: file names should not be guessable, randomize them
+            image = MediaFileModel.objects.create(file=image_file)
+            claim.images.add(image)
+        return claim

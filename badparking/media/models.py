@@ -1,5 +1,4 @@
 from django.db import models
-from datetime import datetime
 
 
 class MediaFileModel(models.Model):
@@ -17,3 +16,6 @@ class MediaFileModel(models.Model):
     class Meta:
         verbose_name = "Зображення"
         verbose_name_plural = "Зображення"
+
+    def __str__(self):
+        return '<{} created at {}>'.format(self.file.name, self.created_at)

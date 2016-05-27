@@ -10,12 +10,17 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     identity = serializers.CharField(read_only=True)
     # On the model this field is not required but when it's coming through deserializer we should enforce it
-    passport = serializers.CharField(required=True)
+    passport = serializers.CharField(required=True, write_only=True)
 
     class Meta:
         model = User
-        exclude = ('password', 'groups', 'user_permissions', 'is_active', 'is_staff', 'is_superuser', 'date_joined',
-                   'last_login', 'id', 'username')
+        fields = ('identity', 'passport', 'first_name', 'middle_name', 'last_name', 'email', 'dob', 'inn',
+                  'provider_type', 'username')
+        extra_kwargs = {
+            'provider_type': {'write_only': True},
+            'username': {'write_only': True, 'required': False},
+            'inn': {'write_only': True}
+        }
 
     def validate_passport(self, value):
         if not re.match(r'^\w{2} \d{6}$', value):
