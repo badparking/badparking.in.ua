@@ -166,11 +166,16 @@ JWT_AUTH = {
 
 
 BANKID_OSCHADBANK = {
-    'client_id': None
+    'client_id': None,
+    'client_secret': None
 }
 
 BANKID_PRIVATBANK = {
-    'client_id': None
+    'client_id': None,
+    'client_secret': None,
+    'private_key_path': None,
+    'authorization_base_url': None,
+    'api_base_url': None
 }
 
 try:
