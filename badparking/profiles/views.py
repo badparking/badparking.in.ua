@@ -73,10 +73,11 @@ class OAuthCompleteLoginView(View):
         if user:
             if not user.is_active:
                 return HttpResponseForbidden()
-            serializer = UserSerializer(user, data=user_info)
+            serializer = UserSerializer(user, data=user_info, partial=True)
         else:
             serializer = UserSerializer(data=user_info)
         if not serializer.is_valid():
+            logger.error(serializer.errors)
             return HttpResponseBadRequest('Invalid user data', content_type='text/plain')
         user = serializer.save()
 
@@ -105,12 +106,6 @@ class BankIDUserInfoMixin(object):
     user_info_declaration = {
         'type': 'physical',
         'fields': ['firstName', 'middleName', 'lastName', 'phone', 'inn', 'birthDay', 'email'],
-        'documents': [
-            {
-                'type': 'passport',
-                'fields': ['series', 'number']
-            }
-        ]
     }
 
     def _map_user_info(self, user_info):
@@ -118,27 +113,28 @@ class BankIDUserInfoMixin(object):
         Maps BankID user info to internally digestible format. To be used with `_retrieve_user_info` method.
         """
         customer = user_info['customer']
-        try:
-            passport = list(filter(lambda x: x['type'] == 'passport', customer['documents']))[0]
-        except (IndexError, KeyError):
-            # Failing softly here, let validation do it's job later
-            passport = None
-
-        return {
-            'first_name': customer['firstName'],
+        data = {
+            'first_name': customer.get('firstName', ''),
             'middle_name': customer.get('middleName', ''),
-            'last_name': customer['lastName'],
-            'email': customer.get('email', ''),
-            'inn': customer.get('inn', ''),
-            # Birthday is required but due to some glitches with BankID atm this is temporarily worked around
-            'dob': datetime.strptime(customer['birthDay'], '%d.%m.%Y').date() if 'birthDay' in customer else datetime.today().date(),
-            'passport': '{} {}'.format(passport['series'], passport['number']) if passport else '',
-            'phone': customer.get('phone', '')
+            'last_name': customer.get('lastName', ''),
+            'inn': customer.get('inn', '')
         }
+        # These fields may be overridden by the user and we don't want them to be emptied on re-login
+        if 'birthDay' in customer:
+            data['dob'] = datetime.strptime(customer['birthDay'], '%d.%m.%Y').date()
+        if 'email' in customer:
+            data['email'] = customer['email']
+        if 'phone' in customer:
+            data['phone'] = customer['phone']
+        return data
 
     def _get_user(self, user_info):
+        if 'inn' not in user_info:
+            # INN is required but let validation handle it
+            return None
+
         try:
-            user = User.objects.get(passport=user_info['passport'])
+            user = User.objects.get(inn=user_info['inn'])
         except User.DoesNotExist:
             user = None
         return user
@@ -190,7 +186,7 @@ class PrivatBankOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginVi
 
 class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
     """Temporary view for testing purposes only (should be replaced with proper unit tests later on)"""
-    def _retrieve_user_info(self, code):
+    def _retrieve_user_info(self, request, code):
         # This is my "Lenna", no offense ;)
         return {
             'first_name': 'Aivaras',
@@ -199,7 +195,6 @@ class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
             'email': 'aivaras@abromavichius.com',
             'inn': '1112618222',
             'dob': datetime.strptime('21.01.1976', '%d.%m.%Y').date(),
-            'passport': 'AA 123456',
             'phone': '+380961234511',
             'provider_type': ''
         }

@@ -1,8 +1,8 @@
-from rest_framework import viewsets, permissions, views, response, generics, exceptions, mixins
+from rest_framework import viewsets, permissions, response, generics, exceptions, mixins
 from rest_framework.decorators import detail_route
 from core.models import CrimeType, Claim
 from profiles.serializers import UserSerializer
-from .serializers import ClaimSerializer, CrimeTypeSerializer
+from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer
 from .models import Client
 
 
@@ -15,16 +15,20 @@ class CrimeTypeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = (permissions.AllowAny,)
 
 
-class CurrentUserView(views.APIView):
+class UserObjectMixin(object):
+    def get_object(self):
+        user = self.request.user
+        self.check_object_permissions(self.request, user)
 
-    def get(self, request):
-        """
-        Retrieve user associated with the current authenticated request.
-        ---
-        response_serializer: UserSerializer
-        """
-        serializer = UserSerializer(request.user)
-        return response.Response(serializer.data)
+        return user
+
+
+class CurrentUserView(UserObjectMixin, generics.RetrieveAPIView):
+    serializer_class = UserSerializer
+
+
+class CompleteCurrentUserView(UserObjectMixin, generics.UpdateAPIView):
+    serializer_class = UserCompleteSerializer
 
 
 class ClaimListView(generics.ListAPIView):
