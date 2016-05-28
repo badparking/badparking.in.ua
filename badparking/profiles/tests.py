@@ -32,7 +32,6 @@ class UserSerializerTests(TestCase):
             'email': 'eugene.salo@email.com',
             'inn': '1112618111',
             'dob': date(1973, 1, 20),
-            'passport': 'ШО 123456',
             'phone': '+380961234511',
             'provider_type': OSCHAD_BANKID
         }
@@ -44,13 +43,12 @@ class UserSerializerTests(TestCase):
             'first_name': 'Aivaras',
             'middle_name': '',
             'last_name': 'Abromavičius',
-            'identity': '1112618222',
             'email': 'aivaras@abromavichius.com',
+            'full_name': 'Aivaras Abromavičius',
             'inn': '1112618222',
             'dob': '1976-01-21',
-            'passport': 'AA 123456',
             'phone': '+380961234511',
-            'provider_type': PRIVAT_BANKID
+            'is_complete': True
         })
 
     def test_deserialization_success(self):
@@ -58,7 +56,8 @@ class UserSerializerTests(TestCase):
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
         self.assertIsInstance(user, User)
-        self.assertEqual(user.identity, '1112618111')
+        self.assertEqual(user.inn, '1112618111')
+        self.assertTrue(user.is_complete())
 
     def test_deserialization_validation_failure(self):
         data = {
@@ -68,7 +67,6 @@ class UserSerializerTests(TestCase):
             'email': 'me@.gov.ua',
             'inn': '1111111111',
             'dob': date(1965, 9, 26),
-            'passport': '',
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
@@ -82,7 +80,7 @@ class UserSerializerTests(TestCase):
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
         self.assertIsInstance(user, User)
-        self.assertEqual(user.identity, 'ШО 123456')
+        self.assertFalse(user.is_complete())
 
 
 class OAuthViewsTests(TestCase):
@@ -101,7 +99,6 @@ class OAuthViewsTests(TestCase):
             'email': 'eugene.salo@email.com',
             'inn': '1112618111',
             'dob': date(1973, 1, 20),
-            'passport': 'ШО 123456',
             'phone': '+380961234511'
         }
         if extra_user_info:
@@ -118,8 +115,8 @@ class OAuthViewsTests(TestCase):
             self.assertNotEqual(response.content, '')
 
             # Check user exists
-            user = User.objects.get(passport=user_info['passport'])
-            self.assertEqual(user.identity, user_info['inn'])
+            user = User.objects.get(inn=user_info['inn'])
+            self.assertEqual(user.inn, user_info['inn'])
 
             # Check returned JWT token is valid and contains this user in the payload
             payload = jwt_decode_handler(response.content)
@@ -182,11 +179,10 @@ class OAuthViewsTests(TestCase):
             'email': 'aivaras@abromavichius.com',
             'inn': '1112618222',
             'dob': '1976-01-21',
-            'passport': 'AA 123456',
             'phone': '+380961234512',
             'provider_type': OSCHAD_BANKID
         }
-        user = User.objects.get(passport=extra_user_info['passport'])
+        user = User.objects.get(inn=extra_user_info['inn'])
         self.assertEqual(user.middle_name, '')
         self.assertEqual(user.provider_type, PRIVAT_BANKID)
         user = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
@@ -203,11 +199,10 @@ class OAuthViewsTests(TestCase):
             'email': 'inactive@user.com',
             'inn': '1112618223',
             'dob': '1999-01-21',
-            'passport': 'AA 123457',
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
-        user = User.objects.get(passport=extra_user_info['passport'])
+        user = User.objects.get(inn=extra_user_info['inn'])
         self.assertFalse(user.is_active)
         response = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
                                               extra_user_info=extra_user_info, test_failure=True)
@@ -222,7 +217,6 @@ class OAuthViewsTests(TestCase):
             'email': 'invalid@.com',
             'inn': '',
             'dob': '1999-401-21',
-            'passport': 'dfgk gdfk445',
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
@@ -262,10 +256,8 @@ class OAuthViewsTests(TestCase):
             'first_name': 'ЄВГЕН',
             'middle_name': 'МИКОЛАЙОВИЧ',
             'last_name': 'САЛО',
-            'email': '',
             'inn': '1112618222',
             'dob': date(1973, 1, 20),
-            'passport': 'ШО 123456',
             'phone': '+380681231212'
         }
         obj = BankIDUserInfoMixin()
