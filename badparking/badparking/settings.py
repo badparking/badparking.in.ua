@@ -178,6 +178,8 @@ BANKID_PRIVATBANK = {
     'api_base_url': None
 }
 
+API_CLIENT_TIMESTAMP_THRESHOLD = 120  # 2 minutes difference is allowed between current time and API timestamp
+
 try:
     from .local_settings import *
 except ImportError:

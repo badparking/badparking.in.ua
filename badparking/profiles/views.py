@@ -26,19 +26,24 @@ User = get_user_model()
 class OAuthLoginView(View):
     """
     Initiates the OAuth2 authorization flow.
-    Additionally requires `client_id` and `client_secrect` query string params corresponding to an active
+    Additionally requires `client_id` and hashed `client_secret` query string params corresponding to an active
     `mobile_api.models.Client` to be present for client authentication.
+
+    `client_secret` is a value of the secret hashed with current UTC `timestamp` in seconds as
+    SHA256(secret + timestamp).
 
     Concrete implementations should be used instead of this.
     """
     def get(self, request):
         client_id = request.GET.get('client_id')
         client_secret = request.GET.get('client_secret')
-        if not client_id or not client_secret:
+        timestamp = request.GET.get('timestamp')
+        if not client_id or not client_secret or not timestamp:
             return HttpResponseBadRequest()
 
         try:
-            Client.objects.get(id=client_id, secret=client_secret, is_active=True)
+            client = Client.objects.get(id=client_id, is_active=True)
+            client.verify_secret(client_secret, timestamp, raise_exception=True)
         except (Client.DoesNotExist, ValueError):
             return HttpResponseForbidden()
 

@@ -1,6 +1,9 @@
+import time
+
 from datetime import date
 from unittest.mock import patch
 from urllib.parse import urlencode
+from hashlib import sha256
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
@@ -88,8 +91,13 @@ class OAuthViewsTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
-        api_client = Client.objects.get(id='9a6291c1-ef6d-4d81-b6dd-a1699b4b78f0')
-        cls.client_creds = {'client_id': api_client.id, 'client_secret': api_client.secret}
+        cls.api_client = Client.objects.get(id='9a6291c1-ef6d-4d81-b6dd-a1699b4b78f0')
+
+    def _make_api_creds(self, api_client, timestamp=None):
+        if timestamp is None:
+            timestamp = str(int(time.time()))
+        secret_hash = sha256(api_client.secret.encode('utf8') + timestamp.encode('utf8')).hexdigest()
+        return {'client_id': api_client.id, 'client_secret': secret_hash, 'timestamp': timestamp}
 
     def _complete_bankid_flow(self, view, complete_url, extra_user_info=None, test_failure=False):
         user_info = {
@@ -126,7 +134,7 @@ class OAuthViewsTests(TestCase):
         return user
 
     def test_oschadbank_full_flow(self):
-        response = self.client.get(reverse('profiles>login>oschadbank'), self.client_creds)
+        response = self.client.get(reverse('profiles>login>oschadbank'), self._make_api_creds(self.api_client))
 
         complete_url = reverse('profiles>complete_login>oschadbank')
         redirect_uri = urlencode({'redirect_uri': 'http://testserver{}'.format(complete_url)})
@@ -139,7 +147,7 @@ class OAuthViewsTests(TestCase):
         self.assertEqual(user.provider_type, OSCHAD_BANKID)
 
     def test_privatbank_full_flow(self):
-        response = self.client.get(reverse('profiles>login>privatbank'), self.client_creds)
+        response = self.client.get(reverse('profiles>login>privatbank'), self._make_api_creds(self.api_client))
 
         complete_url = reverse('profiles>complete_login>privatbank')
         redirect_uri = urlencode({'redirect_uri': 'http://testserver{}'.format(complete_url)})
@@ -162,7 +170,22 @@ class OAuthViewsTests(TestCase):
 
     def test_invalid_client(self):
         for view_name in ('profiles>login>oschadbank', 'profiles>login>privatbank'):
-            response = self.client.get(reverse(view_name), {'client_id': 'dummy', 'client_secret': 'dummy'})
+            response = self.client.get(reverse(view_name),
+                                       {'client_id': 'dummy', 'client_secret': 'dummy', 'timestamp': '12345'})
+            self.assertEqual(response.status_code, 403)
+
+    def test_invalid_client_timestamp(self):
+        for view_name in ('profiles>login>oschadbank', 'profiles>login>privatbank'):
+            future_timestamp = str(time.time() + settings.API_CLIENT_TIMESTAMP_THRESHOLD + 1)
+            response = self.client.get(reverse(view_name), self._make_api_creds(self.api_client, future_timestamp))
+            self.assertEqual(response.status_code, 403)
+
+    def test_incoherent_client_secret(self):
+        for view_name in ('profiles>login>oschadbank', 'profiles>login>privatbank'):
+            # Check that using a valid hash with a different timestamp doesn't authenticate
+            creds = self._make_api_creds(self.api_client)
+            creds['timestamp'] = str(time.time() + 1)
+            response = self.client.get(reverse(view_name), creds)
             self.assertEqual(response.status_code, 403)
 
     def test_missing_auth_code(self):
