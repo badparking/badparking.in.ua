@@ -2,11 +2,12 @@ import logging
 
 from datetime import datetime
 
-from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest, Http404
 from django.views.generic import View
 from django.core.urlresolvers import reverse
 from django.contrib.auth import get_user_model
 from django.apps import apps
+from django.conf import settings
 
 from rest_framework_jwt.settings import api_settings
 
@@ -89,7 +90,9 @@ class OAuthCompleteLoginView(View):
         payload = jwt_payload_handler(user)
         token = jwt_encode_handler(payload)
 
-        return HttpResponse(token, content_type='text/plain')
+        response = HttpResponse('Authentication complete', content_type='text/plain')
+        response['X-JWT'] = token
+        return response
 
     def _retrieve_user_info(self, request, code):
         """
@@ -166,7 +169,17 @@ class PrivatBankOAuthLoginView(OAuthLoginView):
 
 
 class DummyOAuthLoginView(OAuthLoginView):
-    """Temporary view for testing purposes only (should be replaced with proper unit tests later on)"""
+    """
+    Debug mode only view for quickly testing the auth flow manually.
+
+    Note: this view bypasses the client check and MUST only be used in debug mode.
+    """
+    def get(self, request):
+        if not settings.DEBUG:
+            raise Http404()
+
+        return HttpResponseRedirect(self._authorization_url(request))
+
     def _authorization_url(self, request):
         return '{}?code=dummy'.format(request.build_absolute_uri(reverse('profiles>complete_login>dummy')))
 
@@ -190,7 +203,13 @@ class PrivatBankOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginVi
 
 
 class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
-    """Temporary view for testing purposes only (should be replaced with proper unit tests later on)"""
+    """Debug mode only view for quickly testing completion of the auth flow manually."""
+    def get(self, request):
+        if not settings.DEBUG:
+            raise Http404()
+
+        return super(DummyOAuthCompleteLoginView, self).get(request)
+
     def _retrieve_user_info(self, request, code):
         # This is my "Lenna", no offense ;)
         return {

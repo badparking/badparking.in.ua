@@ -120,16 +120,18 @@ class OAuthViewsTests(TestCase):
 
             # Check basic response info
             self.assertEqual(response.status_code, 200)
-            self.assertNotEqual(response.content, '')
+            self.assertTrue('X-JWT' in response)
 
             # Check user exists
             user = User.objects.get(inn=user_info['inn'])
             self.assertEqual(user.inn, user_info['inn'])
 
             # Check returned JWT token is valid and contains this user in the payload
-            payload = jwt_decode_handler(response.content)
+            payload = jwt_decode_handler(response['X-JWT'])
             self.assertEqual(payload['email'], user.email)
             self.assertEqual(payload['username'], user.username)
+            self.assertEqual(payload['full_name'], user.get_full_name())
+            self.assertEqual(payload['is_complete'], user.is_complete())
 
         return user
 
@@ -285,3 +287,11 @@ class OAuthViewsTests(TestCase):
         }
         obj = BankIDUserInfoMixin()
         self.assertEqual(obj._map_user_info(bankid_data), expected_data)
+
+    def test_dummy_auth_only_in_debug(self):
+        with self.settings(DEBUG=False):
+            response = self.client.get(reverse('profiles>login>dummy'))
+            self.assertEqual(response.status_code, 404)
+
+            response = self.client.get(reverse('profiles>complete_login>dummy'))
+            self.assertEqual(response.status_code, 404)

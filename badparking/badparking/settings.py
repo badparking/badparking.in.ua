@@ -154,6 +154,7 @@ JWT_AUTH = {
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=14),
 
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
+    'JWT_PAYLOAD_HANDLER': 'profiles.jwt.extended_jwt_payload_handler',
 }
 
 
