@@ -115,14 +115,6 @@ MEDIA_URL = '/media/'
 SWAGGER_SETTINGS = {
     'exclude_namespaces': [],
     'api_version': 'v1',
-    'api_path': '/',
-    'enabled_methods': [
-        'get',
-        'post',
-        'put',
-        'delete'
-    ],
-    'api_key': '',
     'is_authenticated': False,
     'is_superuser': False,
     'unauthenticated_user': 'django.contrib.auth.models.AnonymousUser',
@@ -131,7 +123,7 @@ SWAGGER_SETTINGS = {
     'info': {
         'title': 'Badparking API documentation',
     },
-    'doc_expansion': 'none',
+    'doc_expansion': 'list',
     'token_type': 'JWT'
 }
 

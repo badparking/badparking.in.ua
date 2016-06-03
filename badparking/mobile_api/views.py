@@ -24,10 +24,16 @@ class UserObjectMixin(object):
 
 
 class CurrentUserView(UserObjectMixin, generics.RetrieveAPIView):
+    """
+    Retrieve current authenticated user info.
+    """
     serializer_class = UserSerializer
 
 
 class CompleteCurrentUserView(UserObjectMixin, generics.UpdateAPIView):
+    """
+    Update current authenticated user with required fields that could not be obtained during registration.
+    """
     serializer_class = UserCompleteSerializer
 
 
