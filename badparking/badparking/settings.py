@@ -115,14 +115,6 @@ MEDIA_URL = '/media/'
 SWAGGER_SETTINGS = {
     'exclude_namespaces': [],
     'api_version': 'v1',
-    'api_path': '/',
-    'enabled_methods': [
-        'get',
-        'post',
-        'put',
-        'delete'
-    ],
-    'api_key': '',
     'is_authenticated': False,
     'is_superuser': False,
     'unauthenticated_user': 'django.contrib.auth.models.AnonymousUser',
@@ -131,7 +123,7 @@ SWAGGER_SETTINGS = {
     'info': {
         'title': 'Badparking API documentation',
     },
-    'doc_expansion': 'none',
+    'doc_expansion': 'list',
     'token_type': 'JWT'
 }
 
@@ -162,6 +154,7 @@ JWT_AUTH = {
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=14),
 
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
+    'JWT_PAYLOAD_HANDLER': 'profiles.jwt.extended_jwt_payload_handler',
 }
 
 
@@ -177,6 +170,8 @@ BANKID_PRIVATBANK = {
     'authorization_base_url': None,
     'api_base_url': None
 }
+
+API_CLIENT_TIMESTAMP_THRESHOLD = 120  # 2 minutes difference is allowed between current time and API timestamp
 
 try:
     from .local_settings import *

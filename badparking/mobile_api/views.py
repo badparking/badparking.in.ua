@@ -24,10 +24,16 @@ class UserObjectMixin(object):
 
 
 class CurrentUserView(UserObjectMixin, generics.RetrieveAPIView):
+    """
+    Retrieve current authenticated user info.
+    """
     serializer_class = UserSerializer
 
 
 class CompleteCurrentUserView(UserObjectMixin, generics.UpdateAPIView):
+    """
+    Update current authenticated user with required fields that could not be obtained during registration.
+    """
     serializer_class = UserCompleteSerializer
 
 
@@ -51,18 +57,25 @@ class ClaimListView(generics.ListAPIView):
               type: string
               paramType: query
             - name: client_secret
-              description: Secret of the API Client corresponding to ID
+              description: Secret of the API Client hashed with a timestamp as `SHA256(secret + timestamp)`
               required: true
               type: string
+              paramType: query
+            - name: timestamp
+              description: Current UTC timestamp value in seconds used for hashing the `client_secret`
+              required: true
+              type: integer
               paramType: query
         """
         client_id = request.GET.get('client_id')
         client_secret = request.GET.get('client_secret')
-        if not client_id or not client_secret:
+        timestamp = request.GET.get('timestamp')
+        if not client_id or not client_secret or not timestamp:
             raise exceptions.NotAuthenticated()
 
         try:
-            client = Client.objects.get(id=client_id, secret=client_secret, is_active=True)
+            client = Client.objects.get(id=client_id, is_active=True)
+            client.verify_secret(client_secret, timestamp, raise_exception=True)
         except (Client.DoesNotExist, ValueError):
             raise exceptions.AuthenticationFailed()
 
