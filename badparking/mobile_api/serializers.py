@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import CrimeType, Claim
+from core.models import CrimeType, Claim, ClaimState
 from media.models import MediaFileModel
 from profiles.serializers import UserSerializer
 
@@ -16,15 +16,22 @@ class MediaFileSerializer(serializers.ModelSerializer):
         fields = ('file',)
 
 
+class ClaimStateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClaimState
+        fields = ('status', 'description', 'logged_at')
+
+
 class ClaimSerializer(serializers.ModelSerializer):
     images = MediaFileSerializer(many=True, read_only=True)
     user = UserSerializer(default=serializers.CurrentUserDefault(), read_only=True)
+    states = ClaimStateSerializer(many=True, read_only=True)
 
     class Meta:
         model = Claim
         fields = ('pk', 'license_plates', 'longitude', 'latitude', 'city', 'address', 'user', 'crimetypes', 'images',
-                  'status', 'images')
-        read_only_fields = ('status',)
+                  'status', 'images', 'states', 'created_at', 'modified_at')
+        read_only_fields = ('status', 'created_at', 'modified_at')
 
     def validate_user(self, value):
         if not value.is_complete():
