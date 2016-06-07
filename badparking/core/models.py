@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from media.models import MediaFileModel
 
@@ -24,6 +24,7 @@ class Claim(models.Model):
     city = models.CharField("Місто", max_length=255, blank=True, db_index=True)
     address = models.CharField("Адреса", max_length=255, blank=True)
     created_at = models.DateTimeField(editable=False, auto_now_add=True)
+    modified_at = models.DateTimeField(editable=False, auto_now=True)
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE,
@@ -40,10 +41,29 @@ class Claim(models.Model):
         verbose_name_plural = "Скарги"
         permissions = (('can_list_all_claims', 'Can list all claims'),)
 
+    def __str__(self):
+        return '<Claim {} - {} - {}>'.format(self.pk, self.user.pk, self.status)
+
     def is_cancelable(self):
         return self.status == CLAIM_STATUS_ENQUEUED
 
     def cancel(self):
         if self.is_cancelable():
             self.status = CLAIM_STATUS_CANCELED
-            self.save(update_fields=['status'])
+            self.save(update_fields=['status', 'modified_at'])
+
+    @transaction.atomic
+    def log_state(self, status, description=''):
+        self.states.create(status=status, description=description)
+        self.status = status
+        self.save(update_fields=['status', 'modified_at'])
+
+
+class ClaimState(models.Model):
+    claim = models.ForeignKey(Claim, related_name='states')
+    status = models.CharField(max_length=255, choices=CLAIM_STATUS_CHOICES)
+    description = models.TextField(blank=True)
+    logged_at = models.DateTimeField(editable=False, auto_now_add=True)
+
+    def __str__(self):
+        return '<ClaimState {} - {}>'.format(self.claim.pk, self.status)
