@@ -128,11 +128,11 @@ class BankIDUserInfoMixin(object):
             'inn': customer.get('inn', '')
         }
         # These fields may be overridden by the user and we don't want them to be emptied on re-login
-        if 'birthDay' in customer:
+        if customer.get('birthDay', None):
             data['dob'] = datetime.strptime(customer['birthDay'], '%d.%m.%Y').date()
-        if 'email' in customer:
+        if customer.get('email', None):
             data['email'] = customer['email']
-        if 'phone' in customer:
+        if customer.get('phone', None):
             data['phone'] = customer['phone']
         return data
 
