@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 
 from core.models import Claim
-from core.constants import CLAIM_ACTIVE_STATUSES
 
 
 CLAIM_BATCH_SIZE = 100
@@ -20,7 +19,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        qs = Claim.objects.filter(status__in=CLAIM_ACTIVE_STATUSES)
+        qs = Claim.objects.authorized().active()
         total = qs.count()
         self.stdout.write('Querying {} claims'.format(total))
         # Ask for feedback in batches to avoid overburdening the services

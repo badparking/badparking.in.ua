@@ -140,7 +140,7 @@ class OAuthViewsTests(TestCase):
 
         complete_url = reverse('profiles>complete_login>oschadbank')
         redirect_uri = urlencode({'redirect_uri': 'http://testserver{}'.format(complete_url)})
-        expected_url = 'https://bankid.oschadbank.ua/v1/bank/oauth2/authorize?client_id={}&{}&response_type=code'\
+        expected_url = 'https://id.bank.gov.ua/v1/bank/oauth2/authorize?client_id={}&{}&response_type=code'\
             .format(settings.BANKID_OSCHADBANK['client_id'], redirect_uri)
         self.assertRedirects(response, expected_url, fetch_redirect_response=False)
 
