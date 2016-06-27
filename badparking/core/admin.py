@@ -27,10 +27,11 @@ class ClaimStateInline(admin.TabularInline):
 
 
 class ClaimAdmin(admin.ModelAdmin):
-    list_display = ('pk', 'created_at', 'status')
+    list_display = ('pk', 'user', 'city', 'created_at', 'status')
     inlines = [MediaInline, ClaimStateInline]
     exclude = ('images',)
-    readonly_fields = ('created_at', 'modified_at')
+    raw_id_fields = ('user',)
+    readonly_fields = ('created_at', 'modified_at', 'authorized_at')
 
 
 admin.site.register(CrimeType, CrimeTypeAdmin)

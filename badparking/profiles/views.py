@@ -107,7 +107,7 @@ class OAuthCompleteLoginView(View):
         raise NotImplementedError
 
 
-class BankIDUserInfoMixin(object):
+class BankIDUserInfoMixin:
     """
     Provides routines common to different BankID providers.
     """
