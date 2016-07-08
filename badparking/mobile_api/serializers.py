@@ -3,7 +3,8 @@ from rest_framework import serializers
 
 from core.models import CrimeType, Claim, ClaimState
 from media.models import MediaFileModel
-from profiles.serializers import UserSerializer
+from profiles.serializers import UserSerializer, ExternalIdUserSerializer
+from profiles.jwt import jwt_from_user
 
 
 class CrimeTypeSerializer(serializers.ModelSerializer):
@@ -58,7 +59,17 @@ class ClaimSerializer(serializers.ModelSerializer):
 class UserCompleteSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):
-        fields = ('first_name', 'middle_name', 'last_name', 'full_name', 'email', 'dob', 'inn',
+        fields = ('first_name', 'middle_name', 'last_name', 'full_name', 'email', 'inn',
                   'username', 'phone', 'is_complete')
         read_only_fields = ('first_name', 'middle_name', 'last_name', 'full_name', 'inn', 'username')
         extra_kwargs = {}
+
+
+class FacebookAuthUserSerializer(ExternalIdUserSerializer):
+    token = serializers.SerializerMethodField()
+
+    class Meta(ExternalIdUserSerializer.Meta):
+        fields = ExternalIdUserSerializer.Meta.fields + ('token',)
+
+    def get_token(self, obj):
+        return jwt_from_user(obj)

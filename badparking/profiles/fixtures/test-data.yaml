@@ -12,7 +12,6 @@
     is_active: true
     date_joined: 2016-04-21 22:00:55.700333+00:00
     middle_name: ''
-    dob: 2016-04-22
     inn: ''
     phone: ''
     provider_type: ''
@@ -24,7 +23,7 @@
     password: testpassword
     last_login: null
     is_superuser: false
-    username: '1112618222'
+    username: 'inn_1112618222'
     first_name: Aivaras
     last_name: "Abromavi\u010Dius"
     email: aivaras@abromavichius.com
@@ -32,7 +31,6 @@
     is_active: true
     date_joined: 2016-04-21 23:12:24.821077+00:00
     middle_name: ''
-    dob: 1976-01-21
     inn: '1112618222'
     phone: '+380961234511'
     provider_type: 'privat_bankid'
@@ -44,7 +42,7 @@
     password: testpassword
     last_login: null
     is_superuser: false
-    username: '1112618223'
+    username: 'inn_1112618223'
     first_name: Inactive
     last_name: User
     email: inactive@user.com
@@ -52,7 +50,6 @@
     is_active: false
     date_joined: 2016-04-21 23:12:24.821077+00:00
     middle_name: ''
-    dob: 1999-01-21
     inn: '1112618223'
     phone: ''
     provider_type: 'privat_bankid'

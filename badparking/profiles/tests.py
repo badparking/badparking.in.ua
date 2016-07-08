@@ -34,13 +34,12 @@ class UserSerializerTests(TestCase):
             'last_name': 'САЛО',
             'email': 'eugene.salo@email.com',
             'inn': '1112618111',
-            'dob': date(1973, 1, 20),
             'phone': '+380961234511',
             'provider_type': OSCHAD_BANKID
         }
 
     def test_serialization_success(self):
-        user = User.objects.get(username='1112618222')
+        user = User.objects.get_by_inn('1112618222')
         serializer = UserSerializer(user)
         self.assertEqual(dict(serializer.data), {
             'first_name': 'Aivaras',
@@ -49,7 +48,6 @@ class UserSerializerTests(TestCase):
             'email': 'aivaras@abromavichius.com',
             'full_name': 'Aivaras Abromavičius',
             'inn': '1112618222',
-            'dob': '1976-01-21',
             'phone': '+380961234511',
             'is_complete': True
         })
@@ -69,21 +67,11 @@ class UserSerializerTests(TestCase):
             'last_name': '',
             'email': 'me@.gov.ua',
             'inn': '1111111111',
-            'dob': date(1965, 9, 26),
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
         serializer = UserSerializer(data=data)
         self.assertFalse(serializer.is_valid())
-
-    def test_deserialization_no_inn(self):
-        data = self.deserialization_data.copy()
-        data['inn'] = ''
-        serializer = UserSerializer(data=data)
-        self.assertTrue(serializer.is_valid())
-        user = serializer.save()
-        self.assertIsInstance(user, User)
-        self.assertFalse(user.is_complete())
 
 
 class OAuthViewsTests(TestCase):
@@ -106,7 +94,6 @@ class OAuthViewsTests(TestCase):
             'last_name': 'САЛО',
             'email': 'eugene.salo@email.com',
             'inn': '1112618111',
-            'dob': date(1973, 1, 20),
             'phone': '+380961234511'
         }
         if extra_user_info:
@@ -123,7 +110,7 @@ class OAuthViewsTests(TestCase):
             self.assertTrue('X-JWT' in response)
 
             # Check user exists
-            user = User.objects.get(inn=user_info['inn'])
+            user = User.objects.get_by_inn(user_info['inn'])
             self.assertEqual(user.inn, user_info['inn'])
 
             # Check returned JWT token is valid and contains this user in the payload
@@ -203,11 +190,10 @@ class OAuthViewsTests(TestCase):
             'last_name': 'Abromavičius',
             'email': 'aivaras@abromavichius.com',
             'inn': '1112618222',
-            'dob': '1976-01-21',
             'phone': '+380961234512',
             'provider_type': OSCHAD_BANKID
         }
-        user = User.objects.get(inn=extra_user_info['inn'])
+        user = User.objects.get_by_inn(extra_user_info['inn'])
         self.assertEqual(user.middle_name, '')
         self.assertEqual(user.provider_type, PRIVAT_BANKID)
         user = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
@@ -223,11 +209,10 @@ class OAuthViewsTests(TestCase):
             'last_name': 'User',
             'email': 'inactive@user.com',
             'inn': '1112618223',
-            'dob': '1999-01-21',
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
-        user = User.objects.get(inn=extra_user_info['inn'])
+        user = User.objects.get_by_inn(extra_user_info['inn'])
         self.assertFalse(user.is_active)
         response = self._complete_bankid_flow(OschadBankOAuthCompleteLoginView, complete_url,
                                               extra_user_info=extra_user_info, test_failure=True)
@@ -241,7 +226,6 @@ class OAuthViewsTests(TestCase):
             'last_name': '',
             'email': 'invalid@.com',
             'inn': '',
-            'dob': '1999-401-21',
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
@@ -282,7 +266,6 @@ class OAuthViewsTests(TestCase):
             'middle_name': 'МИКОЛАЙОВИЧ',
             'last_name': 'САЛО',
             'inn': '1112618222',
-            'dob': date(1973, 1, 20),
             'phone': '+380681231212'
         }
         obj = BankIDUserInfoMixin()
