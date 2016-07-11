@@ -9,9 +9,7 @@ from rest_framework.decorators import detail_route
 
 from core.models import CrimeType, Claim
 from profiles.serializers import UserSerializer
-from profiles.jwt import jwt_from_user
 from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer, FacebookAuthUserSerializer
-from .models import Client
 from .mixins import ClientAuthMixin, UserObjectMixin, ClaimCreateMixin
 
 
@@ -99,7 +97,7 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
             graph = facebook.GraphAPI(access_token, version=self.FACEBOOK_API_VERSION)
             user_info = graph.get_object('me', fields=self.FACEBOOK_USER_FIELDS)
         except facebook.GraphAPIError as exc:
-            if exc.code in ('OAuthException', '102'):
+            if exc.code in ('OAuthException', '102', '190'):
                 raise exceptions.AuthenticationFailed()
             else:
                 logger.exception(exc.message)
@@ -107,7 +105,7 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
 
         user_info = self._map_user_info(user_info)
         try:
-            user = User.objects.get_by_external_id(user_info['external_id'], user_info.get('email', None))
+            user = User.objects.get_by_facebook_id(user_info['external_id'], user_info.get('email', None))
             serializer = self.get_serializer(user, data=user_info, partial=True)
             http_status = status.HTTP_200_OK
         except User.DoesNotExist:
@@ -138,7 +136,7 @@ class ClaimListView(ClaimCreateMixin, ClientAuthMixin, generics.ListCreateAPIVie
 
     def get(self, request, *args, **kwargs):
         """
-        Retrieve a list of all claims, optionally filtered by `status`, `crimetypes` and `city`.
+        Retrieve a list of all claims, optionally filtered by `status`, `crimetypes`, `city` and `created_at`.
 
         Doesn't need user authentication but requires providing client id and secret pair for an API client, which
         has a "can_list_all_claims" permission.
@@ -228,6 +226,8 @@ class CurrentUserClaimViewSet(ClaimCreateMixin,
                               viewsets.GenericViewSet):
     """
     Create, update, get and list operations over current user's claims.
+
+    Filtering by `status`, `crimetypes`, `city` and `created_at` is possible.
     """
     serializer_class = ClaimSerializer
     filter_fields = ('status', 'crimetypes', 'city', 'created_at')

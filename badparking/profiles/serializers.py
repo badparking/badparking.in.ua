@@ -13,16 +13,18 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('first_name', 'middle_name', 'last_name', 'full_name', 'email', 'inn', 'provider_type',
-                  'username', 'phone', 'is_complete')
+                  'username', 'phone', 'is_complete', 'external_id')
         extra_kwargs = {
             'provider_type': {'write_only': True},
-            'username': {'write_only': True, 'required': False}
+            'username': {'write_only': True, 'required': False},
+            'external_id': {'write_only': True}
         }
 
     def create(self, validated_data):
         # Generate and inject username and password because Django requires it
+        validated_data['username'] = uuid.uuid4().hex[:30]
         user = super(UserSerializer, self).create(validated_data)
-        user.set_password(str(uuid.uuid4()))
+        user.set_password(uuid.uuid4().hex)
         user.save()
         return user
 
@@ -32,20 +34,10 @@ class InnUserSerializer(UserSerializer):
         extra_kwargs = {
             'provider_type': {'write_only': True},
             'username': {'write_only': True, 'required': False},
-            'inn': {'required': True}
+            'inn': {'required': True},
+            'external_id': {'write_only': True}
         }
 
     def create(self, validated_data):
-        validated_data['username'] = 'inn_{}'.format(validated_data['inn'])
+        validated_data['external_id'] = validated_data['inn']
         return super(InnUserSerializer, self).create(validated_data)
-
-
-class ExternalIdUserSerializer(UserSerializer):
-    external_id = serializers.CharField(write_only=True, required=True)
-
-    class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ('external_id',)
-
-    def create(self, validated_data):
-        validated_data['username'] = 'eid_{}'.format(validated_data.pop('external_id'))
-        return super(ExternalIdUserSerializer, self).create(validated_data)

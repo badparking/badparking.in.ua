@@ -14,7 +14,7 @@ from rest_framework_jwt.settings import api_settings
 
 from mobile_api.models import Client
 
-from .serializers import UserSerializer
+from .serializers import InnUserSerializer
 from .constants import PRIVAT_BANKID, OSCHAD_BANKID
 from .views import OschadBankOAuthCompleteLoginView, PrivatBankOAuthCompleteLoginView, BankIDUserInfoMixin
 
@@ -40,7 +40,7 @@ class UserSerializerTests(TestCase):
 
     def test_serialization_success(self):
         user = User.objects.get_by_inn('1112618222')
-        serializer = UserSerializer(user)
+        serializer = InnUserSerializer(user)
         self.assertEqual(dict(serializer.data), {
             'first_name': 'Aivaras',
             'middle_name': '',
@@ -53,11 +53,12 @@ class UserSerializerTests(TestCase):
         })
 
     def test_deserialization_success(self):
-        serializer = UserSerializer(data=self.deserialization_data)
+        serializer = InnUserSerializer(data=self.deserialization_data)
         self.assertTrue(serializer.is_valid())
         user = serializer.save()
         self.assertIsInstance(user, User)
         self.assertEqual(user.inn, '1112618111')
+        self.assertEqual(user.external_id, '1112618111')
         self.assertTrue(user.is_complete())
 
     def test_deserialization_validation_failure(self):
@@ -70,7 +71,7 @@ class UserSerializerTests(TestCase):
             'phone': '',
             'provider_type': OSCHAD_BANKID
         }
-        serializer = UserSerializer(data=data)
+        serializer = InnUserSerializer(data=data)
         self.assertFalse(serializer.is_valid())
 
 
