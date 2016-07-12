@@ -1,7 +1,5 @@
 import logging
 
-from datetime import datetime
-
 from django.http import HttpResponseRedirect, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest, Http404
 from django.views.generic import View
 from django.core.urlresolvers import reverse
@@ -9,16 +7,13 @@ from django.contrib.auth import get_user_model
 from django.apps import apps
 from django.conf import settings
 
-from rest_framework_jwt.settings import api_settings
-
 from mobile_api.models import Client
-from .serializers import UserSerializer
+from .serializers import UserSerializer, InnUserSerializer
 from .constants import OSCHAD_BANKID, PRIVAT_BANKID
 from .bankid import BankIdError
+from .jwt import jwt_from_user
 
 logger = logging.getLogger(__name__)
-jwt_payload_handler = api_settings.JWT_PAYLOAD_HANDLER
-jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 oschad_bankid = apps.get_app_config('profiles').oschad_bankid
 privat_bankid = apps.get_app_config('profiles').privat_bankid
 User = get_user_model()
@@ -67,6 +62,8 @@ class OAuthCompleteLoginView(View):
 
     Concrete implementations should be used instead of this.
     """
+    user_serializer = UserSerializer
+
     def get(self, request):
         code = request.GET.get('code')
         if not code:
@@ -79,20 +76,21 @@ class OAuthCompleteLoginView(View):
         if user:
             if not user.is_active:
                 return HttpResponseForbidden()
-            serializer = UserSerializer(user, data=user_info, partial=True)
+            serializer = self._get_serializer(user, data=user_info, partial=True)
         else:
-            serializer = UserSerializer(data=user_info)
+            serializer = self._get_serializer(data=user_info)
         if not serializer.is_valid():
             logger.error(serializer.errors)
             return HttpResponseBadRequest('Invalid user data', content_type='text/plain')
         user = serializer.save()
-
-        payload = jwt_payload_handler(user)
-        token = jwt_encode_handler(payload)
+        token = jwt_from_user(user)
 
         response = HttpResponse('Authentication complete', content_type='text/plain')
         response['X-JWT'] = token
         return response
+
+    def _get_serializer(self, *args, **kwargs):
+        return self.user_serializer(*args, **kwargs)
 
     def _retrieve_user_info(self, request, code):
         """
@@ -111,9 +109,10 @@ class BankIDUserInfoMixin:
     """
     Provides routines common to different BankID providers.
     """
+    user_serializer = InnUserSerializer
     user_info_declaration = {
         'type': 'physical',
-        'fields': ['firstName', 'middleName', 'lastName', 'phone', 'inn', 'birthDay', 'email'],
+        'fields': ['firstName', 'middleName', 'lastName', 'phone', 'inn', 'email'],
     }
 
     def _map_user_info(self, user_info):
@@ -128,8 +127,6 @@ class BankIDUserInfoMixin:
             'inn': customer.get('inn', '')
         }
         # These fields may be overridden by the user and we don't want them to be emptied on re-login
-        if customer.get('birthDay', None):
-            data['dob'] = datetime.strptime(customer['birthDay'], '%d.%m.%Y').date()
         if customer.get('email', None):
             data['email'] = customer['email']
         if customer.get('phone', None):
@@ -142,7 +139,7 @@ class BankIDUserInfoMixin:
             return None
 
         try:
-            user = User.objects.get(inn=user_info['inn'])
+            user = User.objects.get_by_inn(user_info['inn'], user_info.get('email', None))
         except User.DoesNotExist:
             user = None
         return user
@@ -218,7 +215,6 @@ class DummyOAuthCompleteLoginView(BankIDUserInfoMixin, OAuthCompleteLoginView):
             'last_name': 'Abromavičius',
             'email': 'aivaras@abromavichius.com',
             'inn': '1112618222',
-            'dob': datetime.strptime('21.01.1976', '%d.%m.%Y').date(),
             'phone': '+380961234511',
-            'provider_type': ''
+            'provider_type': OSCHAD_BANKID
         }
