@@ -1,6 +1,7 @@
 import logging
 import facebook
 
+from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -9,8 +10,9 @@ from rest_framework.decorators import detail_route
 
 from core.models import CrimeType, Claim
 from profiles.serializers import UserSerializer
-from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer, FacebookAuthUserSerializer
-from .mixins import ClientAuthMixin, UserObjectMixin, ClaimCreateMixin
+from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer, FacebookAuthUserSerializer,\
+    MediaFileSerializer
+from .mixins import ClientAuthMixin, UserObjectMixin
 
 
 logger = logging.getLogger(__name__)
@@ -128,7 +130,7 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
         return data
 
 
-class ClaimListView(ClaimCreateMixin, ClientAuthMixin, generics.ListCreateAPIView):
+class ClaimListView(ClientAuthMixin, generics.ListCreateAPIView):
     queryset = Claim.objects.authorized()
     serializer_class = ClaimSerializer
     permission_classes = (permissions.AllowAny,)
@@ -189,10 +191,6 @@ class ClaimListView(ClaimCreateMixin, ClientAuthMixin, generics.ListCreateAPIVie
               required: true
               type: integer
               paramType: query
-            - name: images
-              required: true
-              type: File
-              paramType: form
         """
         self._get_client(request)
         return super(ClaimListView, self).post(request, *args, **kwargs)
@@ -210,6 +208,8 @@ class ClaimAuthorizeView(generics.GenericAPIView):
             - form
         """
         claim = self.get_object()
+        if not request.user.is_complete():
+            raise exceptions.ValidationError('User profile is not complete')
         claim.user = request.user
         claim.authorized_at = timezone.now()
         claim.save()
@@ -218,8 +218,7 @@ class ClaimAuthorizeView(generics.GenericAPIView):
         return response.Response(serializer.data)
 
 
-class CurrentUserClaimViewSet(ClaimCreateMixin,
-                              mixins.CreateModelMixin,
+class CurrentUserClaimViewSet(mixins.CreateModelMixin,
                               mixins.RetrieveModelMixin,
                               mixins.UpdateModelMixin,
                               mixins.ListModelMixin,
@@ -241,13 +240,36 @@ class CurrentUserClaimViewSet(ClaimCreateMixin,
         Cancel a claim provided by ID.
 
         Can only cancel enqueued claims. If a claim has moved further in status it's not possible to cancel anymore.
-        Requires user authentication.
+        Requires user authentication (provided claim must belong to the user).
         ---
         omit_serializer: true
         """
         claim = self.get_object()
         if claim.is_cancelable():
-            claim.cancel()
-            return response.Response({'status': 'canceled'})
+            claim.try_cancel()
+            return response.Response({'status': claim.status})
         else:
             raise exceptions.ValidationError('This claim can not be canceled')
+
+    @detail_route(methods=['post'], serializer_class=MediaFileSerializer)
+    def media(self, request, pk=None):
+        """
+        Upload a media file for a claim provided by ID.
+
+        Requires user authentication (provided claim must belong to the user).
+        ---
+        serializer: MediaFileSerializer
+        parameters:
+            - name: file
+              required: true
+              type: File
+              paramType: form
+        """
+        claim = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            media = serializer.save()
+            claim.media.add(media)
+            claim.try_complete()
+        return response.Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -1,7 +1,7 @@
 Django==1.9.6
 django-filter==0.13.0
-djangorestframework==3.3.3
-django-rest-swagger==0.3.6
+djangorestframework==3.4.0
+django-rest-swagger==0.3.8
 djangorestframework-jwt==1.8
 Markdown==2.6.6
 psycopg2==2.6.1

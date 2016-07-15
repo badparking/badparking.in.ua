@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 from mobile_api import urls as mobile_api_urls
 from profiles import urls as profile_urls
 
+
 urlpatterns = [
     url(r'^api/v1/', include(mobile_api_urls, namespace='v1')),
     url(r'^profiles/', include(profile_urls)),
