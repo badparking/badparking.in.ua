@@ -26,12 +26,3 @@ class UserObjectMixin:
         self.check_object_permissions(self.request, user)
 
         return user
-
-
-class ClaimCreateMixin:
-    def perform_create(self, serializer):
-        # Currently DRF doesn't seem to pass lists of files into the validated data, hence this explicit way
-        image_files = []
-        if self.request.FILES:
-            image_files = self.request.FILES.getlist('images')
-        serializer.save(image_files=image_files)

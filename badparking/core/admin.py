@@ -12,7 +12,7 @@ class CrimeTypeAdmin(admin.ModelAdmin):
 
 
 class MediaInline(admin.TabularInline):
-    model = Claim.images.through
+    model = Claim.media.through
     raw_id_fields = ('mediafilemodel',)
     readonly_fields = ('image',)
 
@@ -29,7 +29,7 @@ class ClaimStateInline(admin.TabularInline):
 class ClaimAdmin(admin.ModelAdmin):
     list_display = ('pk', 'user', 'city', 'created_at', 'status')
     inlines = [MediaInline, ClaimStateInline]
-    exclude = ('images',)
+    exclude = ('media',)
     raw_id_fields = ('user',)
     readonly_fields = ('created_at', 'modified_at', 'authorized_at')
 
