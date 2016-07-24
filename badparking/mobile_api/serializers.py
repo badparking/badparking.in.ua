@@ -14,9 +14,12 @@ class CrimeTypeSerializer(serializers.ModelSerializer):
 
 
 class MediaFileSerializer(serializers.ModelSerializer):
+    # Specifying this explicitly as DRF doesn't have a mapping for ImageKit, thus unaware it should grab the URL
+    thumbnail = serializers.ImageField(read_only=True)
+
     class Meta:
         model = MediaFileModel
-        fields = ('file', 'original_filename')
+        fields = ('file', 'thumbnail', 'original_filename')
         read_only_fields = ('original_filename',)
 
     def create(self, validated_data):
