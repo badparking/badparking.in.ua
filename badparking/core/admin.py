@@ -1,5 +1,6 @@
 from django.contrib import admin
-from django.utils.html import format_html
+from imagekit.admin import AdminThumbnail
+
 from .models import CrimeType, Claim, ClaimState
 
 
@@ -14,11 +15,8 @@ class CrimeTypeAdmin(admin.ModelAdmin):
 class MediaInline(admin.TabularInline):
     model = Claim.media.through
     raw_id_fields = ('mediafilemodel',)
-    readonly_fields = ('image',)
-
-    def image(self, obj):
-        return format_html('<a href="{}"><img src="{}" width="100" height="100" /></a>',
-                           obj.mediafilemodel.file.url, obj.mediafilemodel.file.url)
+    readonly_fields = ('admin_thumbnail',)
+    admin_thumbnail = AdminThumbnail(image_field=lambda obj: obj.mediafilemodel.thumbnail)
 
 
 class ClaimStateInline(admin.TabularInline):

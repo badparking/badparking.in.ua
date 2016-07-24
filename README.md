@@ -2,7 +2,8 @@
 New version of badparking.in.ua. Now with mobile apps.
 
 # Local installation
-* Install python 3.5 and postgresql.
+* Install python 3.4+, postgresql and redis.
+* Install libffi-dev and libssl-dev
 * Install virtualenv
 * Clone repository
 * Create virtualenv outside of repo: `virtualenv venv`

@@ -41,6 +41,7 @@ INSTALLED_APPS = (
     'rest_framework',
     'rest_framework_swagger',
     'django_filters',
+    'imagekit',
     'core',
     'front',
     'mobile_api',
@@ -92,6 +93,23 @@ DATABASES = {
 }
 
 
+# Cache framework configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'PARSER_CLASS': 'redis.connection.HiredisParser',
+        }
+    }
+}
+
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 
@@ -111,6 +129,8 @@ AUTH_USER_MODEL = 'profiles.User'
 STATIC_URL = '/static/'
 MEDIA_ROOT = normpath(join(BASE_DIR, '../image_storage'))
 MEDIA_URL = '/media/'
+
+IMAGEKIT_SPEC_CACHEFILE_NAMER = 'imagekit.cachefiles.namers.hash'
 
 
 SWAGGER_SETTINGS = {
