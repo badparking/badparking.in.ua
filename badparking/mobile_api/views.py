@@ -1,9 +1,10 @@
 import logging
-import facebook
+import facepy
 
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.conf import settings
 
 from rest_framework import viewsets, permissions, response, generics, exceptions, mixins, status
 from rest_framework.decorators import detail_route
@@ -43,7 +44,7 @@ class CompleteCurrentUserView(UserObjectMixin, generics.UpdateAPIView):
 
 
 class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
-    FACEBOOK_API_VERSION = '2.5'
+    FACEBOOK_API_VERSION = '2.7'
     FACEBOOK_USER_FIELDS = 'id,email,first_name,last_name,middle_name'
 
     serializer_class = FacebookAuthUserSerializer
@@ -94,16 +95,14 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
         self._get_client(request)
 
         try:
-            # TODO: add appsecret_proof for better security once facebook-sdk supports it,
-            # see https://github.com/mobolic/facebook-sdk/pull/243
-            graph = facebook.GraphAPI(access_token, version=self.FACEBOOK_API_VERSION)
-            user_info = graph.get_object('me', fields=self.FACEBOOK_USER_FIELDS)
-        except facebook.GraphAPIError as exc:
-            if exc.code in ('OAuthException', '102', '190'):
-                raise exceptions.AuthenticationFailed()
-            else:
-                logger.exception(exc.message)
-                raise exceptions.ValidationError('Facebook access token error')
+            graph = facepy.GraphAPI(access_token, version=self.FACEBOOK_API_VERSION,
+                                    appsecret=settings.FACEBOOK_APP_SECRET)
+            user_info = graph.get('me', fields=self.FACEBOOK_USER_FIELDS)
+        except facepy.OAuthError:
+            raise exceptions.AuthenticationFailed()
+        except facepy.FacebookError as exc:
+            logger.exception(exc.message)
+            raise exceptions.ValidationError('Facebook access token error')
 
         user_info = self._map_user_info(user_info)
         try:

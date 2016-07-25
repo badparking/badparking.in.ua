@@ -194,6 +194,8 @@ BANKID_PRIVATBANK = {
 
 API_CLIENT_TIMESTAMP_THRESHOLD = 120  # 2 minutes difference is allowed between current time and API timestamp
 
+FACEBOOK_APP_SECRET = None
+
 try:
     from .local_settings import *
 except ImportError:
