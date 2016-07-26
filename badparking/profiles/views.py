@@ -80,7 +80,7 @@ class OAuthCompleteLoginView(View):
         else:
             serializer = self._get_serializer(data=user_info)
         if not serializer.is_valid():
-            logger.error(serializer.errors)
+            logger.error(serializer.errors, extra={'request': request})
             return HttpResponseBadRequest('Invalid user data', content_type='text/plain')
         user = serializer.save()
         token = jwt_from_user(user)
@@ -148,7 +148,7 @@ class BankIDUserInfoMixin:
         try:
             user_info = self._bankid_user_info(request, code)
         except BankIdError:
-            logger.exception('Retrieving BankID info for code "%s" failed', code)
+            logger.exception('Retrieving BankID info for code "%s" failed', code, extra={'request': request})
             return None
         return self._map_user_info(user_info)
 

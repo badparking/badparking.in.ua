@@ -101,7 +101,7 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
         except facepy.OAuthError:
             raise exceptions.AuthenticationFailed()
         except facepy.FacebookError as exc:
-            logger.exception(exc.message)
+            logger.exception(exc.message, extra={'request': request})
             raise exceptions.ValidationError('Facebook access token error')
 
         user_info = self._map_user_info(user_info)
