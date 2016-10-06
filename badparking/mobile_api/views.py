@@ -10,6 +10,7 @@ from rest_framework import viewsets, permissions, response, generics, exceptions
 from rest_framework.decorators import detail_route
 
 from core.models import CrimeType, Claim
+from profiles.constants import FACEBOOK
 from profiles.serializers import UserSerializer
 from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer, FacebookAuthUserSerializer,\
     MediaFileSerializer
@@ -122,7 +123,8 @@ class FacebookAuthUserView(ClientAuthMixin, generics.GenericAPIView):
             'external_id': user_info['id'],
             'first_name': user_info.get('first_name', ''),
             'middle_name': user_info.get('middle_name', ''),
-            'last_name': user_info.get('last_name', '')
+            'last_name': user_info.get('last_name', ''),
+            'provider_type': FACEBOOK
         }
         if user_info.get('email', None):
             data['email'] = user_info['email']

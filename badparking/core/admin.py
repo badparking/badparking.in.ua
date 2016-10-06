@@ -30,6 +30,8 @@ class ClaimAdmin(admin.ModelAdmin):
     exclude = ('media',)
     raw_id_fields = ('user',)
     readonly_fields = ('created_at', 'modified_at', 'authorized_at')
+    list_filter = ('status', 'crimetypes')
+    search_fields = ('id', 'license_plates', 'city', 'address', 'user__email', 'user__last_name')
 
 
 admin.site.register(CrimeType, CrimeTypeAdmin)
