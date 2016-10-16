@@ -58,6 +58,10 @@ class ClaimSerializer(serializers.ModelSerializer):
         return super(ClaimSerializer, self).create(validated_data)
 
 
+class ClaimReadSerializer(ClaimSerializer):
+    crimetypes = CrimeTypeSerializer(many=True)
+
+
 class UserCompleteSerializer(UserSerializer):
 
     class Meta(UserSerializer.Meta):

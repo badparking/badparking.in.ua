@@ -13,7 +13,7 @@ from core.models import CrimeType, Claim
 from profiles.constants import FACEBOOK
 from profiles.serializers import UserSerializer
 from .serializers import ClaimSerializer, CrimeTypeSerializer, UserCompleteSerializer, FacebookAuthUserSerializer,\
-    MediaFileSerializer
+    MediaFileSerializer, ClaimReadSerializer
 from .mixins import ClientAuthMixin, UserObjectMixin
 
 
@@ -136,6 +136,12 @@ class ClaimListView(ClientAuthMixin, generics.ListCreateAPIView):
     serializer_class = ClaimSerializer
     permission_classes = (permissions.AllowAny,)
     filter_fields = ('status', 'crimetypes', 'city', 'created_at')
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return ClaimReadSerializer
+        else:
+            return self.serializer_class
 
     def get(self, request, *args, **kwargs):
         """
