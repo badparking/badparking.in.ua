@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -20,7 +21,9 @@ class MediaFileSerializer(serializers.ModelSerializer):
     class Meta:
         model = MediaFileModel
         fields = ('file', 'thumbnail', 'original_filename')
-        read_only_fields = ('original_filename',)
+        extra_kwargs = {
+            'original_filename': {'write_only': True, 'required': False}
+        }
 
     def create(self, validated_data):
         validated_data['original_filename'] = validated_data['file'].name
@@ -43,10 +46,18 @@ class ClaimSerializer(serializers.ModelSerializer):
         fields = ('pk', 'license_plates', 'longitude', 'latitude', 'city', 'address', 'user', 'crimetypes', 'media',
                   'media_filenames', 'status', 'states', 'created_at', 'modified_at', 'authorized_at')
         read_only_fields = ('status', 'created_at', 'modified_at', 'authorized_at')
+        extra_kwargs = {
+            'media_filenames': {'write_only': True, 'required': True}
+        }
 
     def validate_user(self, value):
         if value and value.is_authenticated() and not value.is_complete():
             raise serializers.ValidationError('User profile is not complete')
+        return value
+
+    def validate_city(self, value):
+        if settings.CITIES_WHITELIST and value.lower() not in settings.CITIES_WHITELIST:
+            raise serializers.ValidationError('This city is not allowed yet')
         return value
 
     def create(self, validated_data):
