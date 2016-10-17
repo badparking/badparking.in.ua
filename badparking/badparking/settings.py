@@ -198,6 +198,8 @@ API_CLIENT_TIMESTAMP_THRESHOLD = 120  # 2 minutes difference is allowed between 
 
 FACEBOOK_APP_SECRET = None
 
+CITIES_WHITELIST = ('київ', 'киев', 'kyiv', 'kiev')
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
