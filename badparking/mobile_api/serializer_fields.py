@@ -17,6 +17,8 @@ class QuantizedDecimalField(serializers.DecimalField):
             # 123.45
             total_digits = len(digittuple)
             whole_digits = total_digits - abs(exponent)
+        else:
+            whole_digits = 0
 
         if self.max_whole_digits is not None and whole_digits > self.max_whole_digits:
             self.fail('max_whole_digits', max_whole_digits=self.max_whole_digits)
