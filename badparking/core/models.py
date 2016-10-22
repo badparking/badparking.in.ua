@@ -35,8 +35,8 @@ class ClaimQuerySet(models.QuerySet):
 class Claim(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     license_plates = models.CharField(max_length=50, db_index=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=11, decimal_places=8)  # Longitude can be between -180° and 180°
+    latitude = models.DecimalField(max_digits=10, decimal_places=8)  # Latitude — between -90° and 90°
     city = models.CharField(max_length=255, db_index=True)
     address = models.CharField(max_length=255)
     created_at = models.DateTimeField(editable=False, auto_now_add=True, db_index=True)

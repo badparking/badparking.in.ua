@@ -7,6 +7,8 @@ from media.models import MediaFileModel
 from profiles.serializers import UserSerializer
 from profiles.jwt import jwt_from_user
 
+from .serializer_fields import QuantizedDecimalField
+
 
 class CrimeTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -67,6 +69,13 @@ class ClaimSerializer(serializers.ModelSerializer):
             else:
                 validated_data.pop('user')
         return super(ClaimSerializer, self).create(validated_data)
+
+    def build_standard_field(self, field_name, model_field):
+        field_class, field_kwargs = super(ClaimSerializer, self).build_standard_field(field_name, model_field)
+        # Override default mapping for the coordinates from DecimalField to a custom QuantizedDecimalField
+        if field_name in ('longitude', 'latitude'):
+            field_class = QuantizedDecimalField
+        return field_class, field_kwargs
 
 
 class ClaimReadSerializer(ClaimSerializer):
